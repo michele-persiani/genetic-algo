@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="GeneticAlgo:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/GeneticAlgo_jar</output-path>
+    <root id="archive" name="GeneticAlgo.jar">
+      <element id="module-output" name="GeneticAlgo" />
+    </root>
+  </artifact>
+</component>
