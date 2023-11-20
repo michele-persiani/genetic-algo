@@ -1,14 +1,13 @@
 # Lightweight genetic algorithm 
 ## See master branch
 
-Lightweight Genetic Algorithm implementation wirtten in Java. Supports custon types of chromosomes, crossovers and selection criteria
+Lightweight Genetic Algorithm implementation written in Java. Supports custon types of chromosomes, crossovers and selection criteria.
 
 
-Example utilization evolving bit genes into ones containing most ones:
+Example utilization evolving bit genes into populations containing most ones:
 
-
+// Algorithm is set up through its builder. Boolean indicates the type of gene inside the chromosomes. Can be any custom class
 BitChromosome prototype = new BitChromosome(100);
-
         GeneticAlgorithm<Boolean> algo = new GeneticAlgorithm.Builder<Boolean>()
                 .prototype(prototype)
                 .populationSize(800)
@@ -19,7 +18,7 @@ BitChromosome prototype = new BitChromosome(100);
                         .sum())
                 .logger(msg -> logger.info(msg))
                 .build();
-
+        // Algorithm is run through the stream() api
         IChromosome<Boolean> best = algo
                 .stream()
                 .reduce((first, second) -> second)
