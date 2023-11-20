@@ -27,7 +27,7 @@ BitChromosome prototype = new BitChromosome(100);
 
         IChromosome<Boolean> best = algo
                 .stream()
-                .reduce((first, second) -> second)
+                .reduce((first, second) -> second) // get last epoch
                 .get()
                 .bestChromosome(algo.fitnessFunction);
 
