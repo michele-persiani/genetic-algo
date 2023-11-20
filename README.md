@@ -6,6 +6,7 @@ Lightweight Genetic Algorithm implementation written in Java. Supports custon ty
 
 Example utilization evolving bit genes into populations containing most ones:
 
+```
 // Algorithm is set up through its builder. Boolean indicates the type of gene inside the chromosomes. Can be any custom class
 BitChromosome prototype = new BitChromosome(100);
         GeneticAlgorithm<Boolean> algo = new GeneticAlgorithm.Builder<Boolean>()
@@ -24,4 +25,4 @@ BitChromosome prototype = new BitChromosome(100);
                 .reduce((first, second) -> second)
                 .get()
                 .bestChromosome(algo.fitnessFunction);
-
+```
