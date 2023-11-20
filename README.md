@@ -19,7 +19,7 @@ BitChromosome prototype = new BitChromosome(100);
                         .sum())
                 .logger(msg -> logger.info(msg))
                 .build();
-        // Algorithm is run through the stream() api
+        // Algorithm is run through the stream() api. Each element of the stream is a Epoch<Boolean> containing the population at that epoch
         IChromosome<Boolean> best = algo
                 .stream()
                 .reduce((first, second) -> second)
