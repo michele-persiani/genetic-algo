@@ -1,11 +1,17 @@
 package io.geneticalgo;
 
 import io.geneticalgo.chromosome.IChromosome;
+import io.geneticalgo.crossover.CrossoverFactory;
+import io.geneticalgo.crossover.ICrossoverFunction;
+import io.geneticalgo.fitness.IFitnessFunction;
 import io.geneticalgo.selection.ISelectionStrategy;
 import io.geneticalgo.selection.RouletteSelection;
 import io.util.ScoreComparator;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -22,6 +28,7 @@ import java.util.stream.StreamSupport;
  */
 public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
 {
+
     public static class Builder<T> extends io.util.Builder<GeneticAlgorithm<T>>
     {
         public Builder<T> populationSize(int popSize)
@@ -59,6 +66,11 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
             return this.setValue(this, a -> a.fitnessFunction = fitnessFunction);
         }
 
+        public Builder<T> crossoverFunction(ICrossoverFunction<T> crossoverFunction)
+        {
+            return this.setValue(this, a -> a.crossoverFunction = crossoverFunction);
+        }
+
         public Builder<T> logger(Consumer<String> logger)
         {
             return this.setValue(this, a -> a.logger = logger);
@@ -89,7 +101,7 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
     /**
      * Percentage of best chromosomes that are kept between an epoch and the other
      */
-    public double keepBestPercentage = 0d;
+    public double keepBestPercentage = 0.05d;
 
     /**
      * Selection strategy to sample crossovered chromosomes
@@ -100,6 +112,11 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
      * Prototype to initialize the population
      */
     public IChromosome<T> prototype = null;
+
+    /**
+     * Crossover function
+     */
+    private ICrossoverFunction<T> crossoverFunction = CrossoverFactory.pairwiseCrossoverPoint();
 
     /**
      * Chromosome fitness function
@@ -126,7 +143,18 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
     /**
      * Algorithm's start time. Set at the beginning of computations
      */
-    private long startTimeMillis = 0L;
+    private long trainingStartTime = 0L;
+
+
+    private ExecutorService executor = Executors.newWorkStealingPool(8);
+
+
+    @Override
+    protected void finalize() throws Throwable
+    {
+        super.finalize();
+        executor.shutdownNow();
+    }
 
     /**
      * Reset the algorithm for a new computations
@@ -155,6 +183,8 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
         return currentEpoch() < maxEpochs;
     }
 
+
+
     /**
      *
      * @return compute and return the next epoch
@@ -165,54 +195,66 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
         if(currentEpoch() == 0)
         {
             initializePopulation();
-            startTimeMillis = System.currentTimeMillis();
+            trainingStartTime = System.currentTimeMillis();
         }
+        long epochStartTime = System.currentTimeMillis();
+
         if(!hasMoreElements())
             throw new NoSuchElementException("Max epoch reached");
 
         List<IChromosome<T>> nextPopulation = new ArrayList<>();
 
-        // Compute population fitness
-        Map<IChromosome<T>, Double> fitnesses = currentPopulation.stream().collect(Collectors.toMap(ch -> ch, fitnessFunction));
+
+        Map<IChromosome<T>, Double> fitnesses = new ConcurrentHashMap<>();
+
+        currentPopulation.forEach(ch -> {
+                fitnesses.put(ch, fitnessFunction.apply(ch));
+        });
+
 
         // Keep best individuals
         fitnesses.keySet()
                 .stream()
-                 .sorted(new ScoreComparator<>(fitnesses::get))
-                .limit((long)clamp(Math.floor(keepBestPercentage * populationSize), 0, populationSize))
+                 .sorted(new ScoreComparator<>(fitnesses::get, true))
+                .limit((long)clamp(Math.ceil(keepBestPercentage * populationSize), 0, populationSize))
                 .forEach(nextPopulation::add);
 
         // Crossover
         selectionStrategy.setPopulation(fitnesses);
+
         while(nextPopulation.size() < populationSize && selectionStrategy.hasMoreElements())
         {
             IChromosome<T> sel0 = selectionStrategy.nextElement();
             IChromosome<T> sel1 = selectionStrategy.nextElement();
-            sel0.crossover(sel1)
-                .stream()
-                .peek(ch -> {
-                    // Mutation
-                    IntStream.range(0, ch.size())
-                            .filter(idx -> random.nextDouble() < mutationProbability)
-                            .forEach(ch::mutate);
 
-                }).forEach(nextPopulation::add);
+            crossoverFunction
+                    .apply(sel0, sel1)
+                    .stream()
+                    .peek(ch -> {
+                        // Mutation
+                        IntStream.range(0, ch.size())
+                                .filter(idx -> random.nextDouble() < mutationProbability)
+                                .forEach(ch::mutate);
+                    }).forEach(nextPopulation::add);
         }
 
         currentPopulation = nextPopulation.stream().limit(populationSize).collect(Collectors.toList());
 
-        double elapsedTime = (System.currentTimeMillis() - startTimeMillis) / 1000d;
+        double currentTimeMillis   = System.currentTimeMillis();
+        double trainingElapsedTime = (currentTimeMillis - trainingStartTime) / 1000d;
+        double epochElapsedTime    = (currentTimeMillis - epochStartTime) / 1000d;
 
         Epoch<T> epoch = new Epoch<>(currentPopulation);
 
         double bestFitness = epoch.bestFitness(fitnessFunction);
         double avgFitness = epoch.averageFitness(fitnessFunction);
         logMessage(
-                "EPOCH=%-10s BEST FITNESS=%-15s AVG FITNESS=%-15s ELAPSED TIME=%-10s",
+                "EPOCH=%-10s AVG FITNESS=%-15s BEST FITNESS=%-15s ELAPSED TIME=%-10s  (EPOCH=%ss)",
                 epochs.size(),
-                bestFitness,
                 avgFitness,
-                String.format("%ss", elapsedTime)
+                bestFitness,
+                String.format("%ss", trainingElapsedTime),
+                epochElapsedTime
                 );
         epochs.add(epoch);
         return epoch;
@@ -224,7 +266,7 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
      */
     public Stream<Epoch<T>> stream()
     {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new Iterator<Epoch<T>>()
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new Iterator<>()
         {
             @Override
             public Epoch<T> next()
@@ -251,10 +293,12 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
         IChromosome<T> curr = prototype.clone();
         for(int i = 0; i < populationSize; i++)
         {
+            String log = curr.toString();
             curr.randomize();
             currentPopulation.add(curr);
             curr = prototype.clone();
         }
+
     }
 
     /**

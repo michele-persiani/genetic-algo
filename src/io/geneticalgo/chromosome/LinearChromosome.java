@@ -2,6 +2,7 @@ package io.geneticalgo.chromosome;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -11,6 +12,14 @@ import java.util.List;
 public abstract class LinearChromosome<T> implements IChromosome<T>
 {
     protected ArrayList<T> genes = new ArrayList<>();
+
+    public LinearChromosome(int size)
+    {
+        for(int i = 0; i < size; i ++)
+            genes.add(createDefaultGene());
+    }
+
+    protected abstract T createDefaultGene();
 
     public List<T> genes()
     {
@@ -37,4 +46,9 @@ public abstract class LinearChromosome<T> implements IChromosome<T>
 
     public abstract IChromosome<T> clone();
 
+
+    public String toString()
+    {
+        return "[%s]".formatted(String.join(" ", genes().stream().map(Object::toString).collect(Collectors.toList())));
+    }
 }

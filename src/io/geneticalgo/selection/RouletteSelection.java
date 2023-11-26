@@ -17,48 +17,53 @@ public class RouletteSelection<T> implements ISelectionStrategy<T>
 {
     public boolean replacement = true;
 
-    private Map<T, Double> currentPopulation = new HashMap<>();
+    private Map<T, Double> populationScores = new HashMap<>();
 
     private Random random = new Random();
 
     @Override
     public void setPopulation(Map<T, Double> population)
     {
-        currentPopulation = new HashMap<>(population);
-        currentPopulation.keySet().forEach(k -> currentPopulation.put(k, currentPopulation.get(k)));
-        double sum = currentPopulation.values().stream().reduce(0d, Double::sum);
-        currentPopulation.keySet().forEach(k -> currentPopulation.put(k, currentPopulation.get(k) / sum));
+        populationScores = new HashMap<>(population);
     }
 
     @Override
     public boolean hasMoreElements()
     {
-        return !currentPopulation.isEmpty();
+        return !populationScores.isEmpty();
     }
 
     @Override
     public T nextElement()
     {
-        List<T> sortedElements = currentPopulation.keySet()
-                                                  .stream()
-                                                  .sorted(new ScoreComparator<>(e -> currentPopulation.get(e)))
-                                                  .collect(Collectors.toList());
+        double sum = populationScores.values().stream().reduce(0d, Double::sum);
 
-        List<Double> sortedProbas = currentPopulation.values()
-                                                  .stream()
-                                                  .sorted(new ScoreComparator<>(e -> e))
-                                                  .collect(Collectors.toList());
+        Map<T, Double> elementsProbability = new HashMap<>();
+        populationScores.keySet().forEach(k -> elementsProbability.put(k, populationScores.get(k) / sum));
+
+        List<T> sortedElements = elementsProbability
+                .keySet()
+                .stream()
+                .sorted(new ScoreComparator<>(elementsProbability::get))
+                .collect(Collectors.toList());
+
+        List<Double> sortedProbas = sortedElements
+                .stream()
+                .map(elementsProbability::get)
+                .collect(Collectors.toList());
 
         double v = random.nextDouble();
         double curr = 0;
-        int idx;
-        for(idx = 0; curr < v; idx ++)
+        int idx = 0;
+        while(curr < v && idx < sortedElements.size())
+        {
             curr += sortedProbas.get(idx);
-
+            idx ++;
+        }
 
         T sample =  sortedElements.get(idx - 1);
         if(!replacement)
-            currentPopulation.remove(sample);
+            populationScores.remove(sample);
         return sample;
     }
 }

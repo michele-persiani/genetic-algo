@@ -45,10 +45,4 @@ public interface IChromosome<T>
      */
     void randomize();
 
-    /**
-     * Crossover with another chromosome.
-     * @param other other chromosome to crossover with
-     * @return a collection of chromosomes resulting from the crossover. Most of the times it will be of size 2
-     */
-    Collection<IChromosome<T>> crossover(IChromosome<T> other);
 }

@@ -1,6 +1,7 @@
 package io.geneticalgo;
 
 import io.geneticalgo.chromosome.IChromosome;
+import io.geneticalgo.fitness.IFitnessFunction;
 import io.util.ScoreComparator;
 
 import java.util.ArrayList;
