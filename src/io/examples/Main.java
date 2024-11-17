@@ -4,7 +4,6 @@ import io.geneticalgo.GeneticAlgorithm;
 import io.geneticalgo.chromosome.BitChromosome;
 import io.geneticalgo.chromosome.IChromosome;
 import io.geneticalgo.crossover.CrossoverFactory;
-import io.geneticalgo.selection.RouletteSelection;
 import io.geneticalgo.selection.SelectionStrategyFactory;
 
 import java.util.logging.Logger;
@@ -12,8 +11,6 @@ import java.util.stream.IntStream;
 
 public class Main
 {
-
-
     public static void main(String[] args)
     {
         Logger logger = Logger.getLogger("Main");
