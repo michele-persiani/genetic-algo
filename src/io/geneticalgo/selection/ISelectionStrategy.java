@@ -11,8 +11,8 @@ import java.util.Map;
 public interface ISelectionStrategy<T> extends Enumeration<T>
 {
     /**
-     * Sets the population to sample
-     * @param population population and associated fitnesses to sample
+     * Sets the population of this selection strategy, to sample using the Enumeration interface
+     * @param population population and associated scores to sample from
      */
     void setPopulation(Map<T, Double> population);
 }

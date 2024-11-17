@@ -16,9 +16,15 @@ public class Epoch<T>
 {
     private final Collection<IChromosome<T>> population;
 
+
     public Epoch(Collection<IChromosome<T>> population)
     {
         this.population = new ArrayList<>(population);
+    }
+
+    public Collection<IChromosome<T>> getPopulation()
+    {
+        return new ArrayList<>(population);
     }
 
     public IChromosome<T> bestChromosome(IFitnessFunction<T> fitnessFunction)
@@ -33,6 +39,6 @@ public class Epoch<T>
 
     public double averageFitness(IFitnessFunction<T> fitnessFunction)
     {
-        return population.stream().mapToDouble(fitnessFunction::apply).average().getAsDouble();
+        return population.stream().mapToDouble(fitnessFunction::apply).average().orElse(0);
     }
 }

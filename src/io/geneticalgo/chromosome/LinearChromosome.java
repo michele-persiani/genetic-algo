@@ -11,15 +11,13 @@ import java.util.stream.Collectors;
  */
 public abstract class LinearChromosome<T> implements IChromosome<T>
 {
-    protected ArrayList<T> genes = new ArrayList<>();
+    protected final ArrayList<T> genes = new ArrayList<>();
 
     public LinearChromosome(int size)
     {
         for(int i = 0; i < size; i ++)
             genes.add(createDefaultGene());
     }
-
-    protected abstract T createDefaultGene();
 
     public List<T> genes()
     {
@@ -44,11 +42,12 @@ public abstract class LinearChromosome<T> implements IChromosome<T>
         return genes.size();
     }
 
-    public abstract IChromosome<T> clone();
-
-
     public String toString()
     {
         return "[%s]".formatted(String.join(" ", genes().stream().map(Object::toString).collect(Collectors.toList())));
     }
+
+    protected abstract T createDefaultGene();
+
+    public abstract IChromosome<T> clone();
 }

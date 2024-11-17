@@ -1,10 +1,6 @@
 package io.geneticalgo.chromosome;
 
 
-
-import io.geneticalgo.crossover.CrossoverFactory;
-
-import java.util.Collection;
 import java.util.Random;
 
 

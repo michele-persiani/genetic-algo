@@ -116,7 +116,7 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
     /**
      * Crossover function
      */
-    private ICrossoverFunction<T> crossoverFunction = CrossoverFactory.pairwiseCrossoverPoint();
+    private ICrossoverFunction<T> crossoverFunction = CrossoverFactory.createPairwiseCrossoverPoint();
 
     /**
      * Chromosome fitness function
@@ -136,7 +136,7 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
     /**
      * Holds each computed epoch
      */
-    private List<Epoch<T>> epochs = new ArrayList<>();
+    private final List<Epoch<T>> epochs = new ArrayList<>();
 
     private final Random random = new Random();
 
@@ -146,22 +146,13 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
     private long trainingStartTime = 0L;
 
 
-    private ExecutorService executor = Executors.newWorkStealingPool(8);
-
-
-    @Override
-    protected void finalize() throws Throwable
-    {
-        super.finalize();
-        executor.shutdownNow();
-    }
-
     /**
      * Reset the algorithm for a new computations
      */
     public void reset()
     {
         epochs.clear();
+        trainingStartTime = 0L;
     }
 
     /**
@@ -185,10 +176,6 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
 
 
 
-    /**
-     *
-     * @return compute and return the next epoch
-     */
     @Override
     public Epoch<T> nextElement()
     {
@@ -293,7 +280,6 @@ public class GeneticAlgorithm<T> implements Enumeration<Epoch<T>>
         IChromosome<T> curr = prototype.clone();
         for(int i = 0; i < populationSize; i++)
         {
-            String log = curr.toString();
             curr.randomize();
             currentPopulation.add(curr);
             curr = prototype.clone();

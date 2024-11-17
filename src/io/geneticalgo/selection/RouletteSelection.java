@@ -1,6 +1,7 @@
 package io.geneticalgo.selection;
 
 import io.util.ScoreComparator;
+import io.util.Tuple;
 
 import java.util.HashMap;
 import java.util.List;
@@ -13,57 +14,32 @@ import java.util.stream.Collectors;
  * Simple roulette strategy where elements are sampled with probability linear to their score
  * @param <T>
  */
-public class RouletteSelection<T> implements ISelectionStrategy<T>
+public class RouletteSelection<T> extends BaseSelectionStrategy<T>
 {
-    public boolean replacement = true;
-
-    private Map<T, Double> populationScores = new HashMap<>();
-
-    private Random random = new Random();
+    private final Random random = new Random();
 
     @Override
-    public void setPopulation(Map<T, Double> population)
+    protected T sampleElement(Map<T, Double> populationScores)
     {
-        populationScores = new HashMap<>(population);
-    }
+        double scoresSum = populationScores.values().stream().reduce(0d, Double::sum);
 
-    @Override
-    public boolean hasMoreElements()
-    {
-        return !populationScores.isEmpty();
-    }
-
-    @Override
-    public T nextElement()
-    {
-        double sum = populationScores.values().stream().reduce(0d, Double::sum);
-
-        Map<T, Double> elementsProbability = new HashMap<>();
-        populationScores.keySet().forEach(k -> elementsProbability.put(k, populationScores.get(k) / sum));
-
-        List<T> sortedElements = elementsProbability
+        List<Tuple<T, Double>> sortedElements = populationScores
                 .keySet()
                 .stream()
-                .sorted(new ScoreComparator<>(elementsProbability::get))
-                .collect(Collectors.toList());
+                .sorted(new ScoreComparator<>(populationScores::get))
+                .map(e -> new Tuple<>(e, populationScores.get(e)))
+                .toList();
 
-        List<Double> sortedProbas = sortedElements
-                .stream()
-                .map(elementsProbability::get)
-                .collect(Collectors.toList());
 
-        double v = random.nextDouble();
+        double v = random.nextDouble() * scoresSum;
         double curr = 0;
         int idx = 0;
         while(curr < v && idx < sortedElements.size())
         {
-            curr += sortedProbas.get(idx);
+            curr += sortedElements.get(idx).second;
             idx ++;
         }
 
-        T sample =  sortedElements.get(idx - 1);
-        if(!replacement)
-            populationScores.remove(sample);
-        return sample;
+        return  sortedElements.get(idx - 1).first;
     }
 }
